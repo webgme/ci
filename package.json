@@ -1,0 +1,30 @@
+{
+  "name": "webgme-ci",
+  "version": "0.0.1",
+  "description": "Continuous Integration package for webgme.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "hook": "node src/utils/hook.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/webgme/ci.git"
+  },
+  "keywords": [
+    "CI",
+    "WebGME"
+  ],
+  "author": "kecso <tkecskes@isis.vanderbilt.edu>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/webgme/ci/issues"
+  },
+  "homepage": "https://github.com/webgme/ci#readme",
+  "dependencies": {
+    "body-parser": "^1.16.0",
+    "express": "^4.14.0",
+    "grunt": "^1.0.1",
+    "grunt-contrib-jshint": "^1.1.0"
+  }
+}
