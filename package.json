@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "hook": "node src/utils/hook.js"
+    "start": "node src/bin/app.js"
   },
   "repository": {
     "type": "git",
@@ -22,9 +22,19 @@
   },
   "homepage": "https://github.com/webgme/ci#readme",
   "dependencies": {
+    "blanket": "^1.2.3",
     "body-parser": "^1.16.0",
+    "del": "^2.2.2",
     "express": "^4.14.0",
     "grunt": "^1.0.1",
-    "grunt-contrib-jshint": "^1.1.0"
+    "gulp": "^3.9.1",
+    "gulp-cat": "^0.3.3",
+    "gulp-clean": "^0.3.2",
+    "gulp-exec": "^2.1.3",
+    "gulp-git": "^1.12.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^3.2.0",
+    "q": "^1.4.1",
+    "run-sequence": "^1.2.2"
   }
 }

@@ -12,11 +12,11 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 
 app.post('/github', function (req, res) {
-    console.log('payload arrived');
+    console.log(' arrived');
     console.log(req.body);
-    res.send(200);
+    res.sendStatus(200);
 });
 
 app.listen(45678, function () {
-    console.log('Github webhook processor have been initialized');
+    console.log('WebGME Continous Integration Machine initialized');
 });
