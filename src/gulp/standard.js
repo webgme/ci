@@ -1,22 +1,27 @@
 /**
  * @author kecso / https://github.com/kecso
  */
-var gulp = require('gulp'),
+var workDir = '/webgme',
+    baseDir = process.cwd(),
+    resultDir = '/results',
+    resultId = null,
+    gulp = require('gulp'),
     exec = require('child_process').exec,
     git = require('gulp-git'),
     clean = require('gulp-clean'),
     del = require('del'),
     Q = require('q'),
     FS = require('fs'),
-    mocha = require(process.cwd() + '/src/tasks/mocha'),
-    workDir = '/webgme',
-    baseDir = process.cwd(),
-    resultDir = '/results',
-    resultId,
+    mocha = require(baseDir + '/src/tasks/mocha'),
+    istanbul = require(baseDir + '/src/tasks/istanbul'),
     buildTime = {},
     runSequence = require('run-sequence').use(gulp),
     globals,
     detailed;
+
+if (process.argv.length === 3) {
+    resultId = process.argv[2];
+}
 
 gulp.task('init-globals', function () {
     var directories;
@@ -30,10 +35,12 @@ gulp.task('init-globals', function () {
                 commits: [],
                 histograms: {
                     coverage: [],
+                    coverageTime: [],
                     mocha: [],
-                    npm: [],
-                    git: [],
-                    performance: []
+                    mochaTime: [],
+                    npmTime: [],
+                    gitTime: [],
+                    performanceTime: []
                 },
                 detailed: {}
             };
@@ -55,49 +62,83 @@ gulp.task('save-globals', function () {
 
     detailed.buildTime = buildTime;
     for (time in buildTime) {
-        globals.histograms[time].unshift(buildTime[time]);
+        globals.histograms[time + 'Time'].unshift(buildTime[time]);
     }
     FS.writeFileSync(baseDir + '/results/globals.json', JSON.stringify(globals, null, 2));
 });
 
-gulp.task('git', function () {
-    var deferred = Q.defer();
+if (resultId) {
+    gulp.task('git', function () {
+        var deferred = Q.defer();
 
-    buildTime.git = new Date().getTime();
-    git.fetch('', '', {args: '--all', cwd: '.' + workDir}, function (err) {
-        if (err) {
-            buildTime.git = null;
-            deferred.reject(err);
-        } else {
-            git.pull('origin', 'master', {cwd: '.' + workDir}, function (err) {
-                if (err) {
-                    buildTime.git = null;
-                    deferred.reject(err);
-                } else {
-                    git.exec({args: 'log --pretty=format:\'%H\' -n 1', cwd: '.' + workDir}, function (err, stdout) {
-                        if (err) {
-                            buildTime.git = null;
-                            deferred.reject(err);
-                        } else {
-                            resultId = stdout;
-                            resultDir += '/' + resultId;
-                            buildTime.git = new Date().getTime() - buildTime.git;
-                            deferred.resolve();
-                        }
-                    });
-                }
-            });
-        }
+        buildTime.git = new Date().getTime();
+        git.fetch('', '', {args: '--all', cwd: '.' + workDir}, function (err) {
+            if (err) {
+                buildTime.git = null;
+                deferred.reject(err);
+            } else {
+                git.exec({args: 'reset --hard', cwd: '.' + workDir}, function (err) {
+                    if (err) {
+                        buildTime.git = null;
+                        deferred.reject(err);
+                    } else {
+                        git.exec({args: 'checkout --detach ' + resultId, cwd: '.' + workDir}, function (err) {
+                            if (err) {
+                                buildTime.git = null;
+                                deferred.reject(err);
+                            } else {
+                                resultDir += '/' + resultId;
+                                buildTime.git = new Date().getTime() - buildTime.git;
+                                deferred.resolve();
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        return deferred.promise;
     });
+} else {
+    gulp.task('git', function () {
+        var deferred = Q.defer();
 
-    return deferred.promise;
-});
+        buildTime.git = new Date().getTime();
+        git.fetch('', '', {args: '--all', cwd: '.' + workDir}, function (err) {
+            if (err) {
+                buildTime.git = null;
+                deferred.reject(err);
+            } else {
+                git.pull('origin', 'master', {cwd: '.' + workDir}, function (err) {
+                    if (err) {
+                        buildTime.git = null;
+                        deferred.reject(err);
+                    } else {
+                        git.exec({args: 'log --pretty=format:\'%H\' -n 1', cwd: '.' + workDir}, function (err, stdout) {
+                            if (err) {
+                                buildTime.git = null;
+                                deferred.reject(err);
+                            } else {
+                                resultId = stdout;
+                                resultDir += '/' + resultId;
+                                buildTime.git = new Date().getTime() - buildTime.git;
+                                deferred.resolve();
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        return deferred.promise;
+    });
+}
 
 gulp.task('npm', function () {
     var deferred = Q.defer();
 
     buildTime.npm = new Date().getTime();
-    exec('npm install', {cwd: process.cwd() + workDir}, function (err, stdout, stderr) {
+    exec('npm install', {cwd: baseDir + workDir, encoding: 'buffer'}, function (err, stdout, stderr) {
         if (err) {
             buildTime.npm = null;
             deferred.reject(err);
@@ -111,51 +152,58 @@ gulp.task('npm', function () {
 });
 
 gulp.task('prepare-coverage', function () {
-    gulp.src(process.cwd() + workDir + '/coverage', {read: false})
+    gulp.src(baseDir + workDir + '/coverage', {read: false})
         .pipe(clean())
 });
 
 gulp.task('mocha', function () {
     var deferred = Q.defer();
 
+    buildTime.mocha = new Date().getTime();
     mocha.clearFiles();
-    mocha.addDir(process.cwd() + workDir + '/test');
-    mocha.run(process.cwd() + workDir)
+    mocha.addDir(baseDir + workDir + '/test');
+    mocha.run(baseDir + workDir)
         .then(function (stats) {
-            console.log('finished', process.cwd() + resultDir + '/mochaResults.json');
-            FS.writeFileSync(process.cwd() + resultDir + '/mochaResults.json', JSON.stringify(stats, null, 2));
+            FS.writeFileSync(baseDir + resultDir + '/mochaResults.json', JSON.stringify(stats, null, 2));
+            buildTime.mocha = new Date().getTime() - buildTime.mocha;
+            globals.histograms.mocha.unshift(parseInt(100 * (stats.pass / (stats.all - stats.pending))));
             deferred.resolve();
         });
     return deferred.promise;
 });
 
-gulp.task('coverage', ['prepare-coverage'], function () {
-    var deferred = Q.defer();
+gulp.task('coverage', function () {
+    var deferred = Q.defer(),
+        task;
 
-    console.log('c');
     buildTime.coverage = new Date().getTime();
-    exec('npm run test_cover', {cwd: process.cwd() + workDir}, function (err, stdout, stderr) {
-        console.log('c-', err);
-        if (err) {
-            buildTime.coverage = null;
-            deferred.reject(err);
-        } else {
-            gulp.src(process.cwd() + workDir + '/coverage/**', {read: false})
-                .pipe(gulp.dest(process.cwd() + resultDir + '/coverage'))
-                .on('end', function () {
-                    buildTime.coverage = new Date().getTime() - buildTime.coverage;
-                    deferred.resolve();
-                });
-        }
+    task = exec('npm run test_cover', {cwd: baseDir + workDir, encoding: 'buffer'},
+        function (/*err, stdout, stderr*/) {
+            buildTime.coverage = new Date().getTime() - buildTime.coverage;
+            setTimeout(function () {
+                gulp.src(baseDir + workDir + '/coverage/**')
+                    .pipe(gulp.dest(baseDir + resultDir + '/coverage'))
+                    .on('finish', function () {
+                        deferred.resolve();
+                    });
+            }, 1000);
+        });
+
+    // TODO - Right now we just ignoring any kind of output from the coverage process
+    task.stdout.on('data', function (data) {
+    });
+    task.stderr.on('data', function (data) {
     });
 
     return deferred.promise;
 });
 
-gulp.task('clean', function () {
-    console.log('clean');
-    return gulp.src('./work', {read: false})
-        .pipe(clean());
+gulp.task('process-coverage', function () {
+    //TODO - The info contains file-to-file detailed statistics, but right now we only uses the __total__
+    var coverageInfo = istanbul(baseDir + workDir, baseDir + resultDir + '/coverage/coverage.json');
+
+    globals.histograms.coverage.unshift(coverageInfo.__total__.lines.pct);
+
 });
 
 runSequence(
@@ -163,10 +211,15 @@ runSequence(
     'init-globals',
     'npm',
     'mocha',
-    // 'coverage',
+    'prepare-coverage',
+    'coverage',
+    'process-coverage',
     'save-globals',
     function (err) {
+        console.log('finished handling commit:', resultId);
         if (err) {
-            console.log(err);
+            console.error(err);
         }
+        //TODO - probably the mocha tries to keep the process alive...
+        process.exit(0);
     });

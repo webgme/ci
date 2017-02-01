@@ -10,7 +10,6 @@ var Mocha = require('mocha'),
     files = [],
     FS = require('fs'),
     PATH = require('path'),
-    istanbul = require('istanbul'),
     Q = require('q');
 
 function getTestName(test) {
@@ -67,7 +66,6 @@ function run(workingDir) {
         oldStdout = process.stdout.write,
         oldStderr = process.stderr.write;
 
-    console.log(Object.keys(istanbul));
     process.stdout.write = function (string, encoding, fd) {
         //just ignore everything
     };
