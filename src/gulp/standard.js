@@ -7,6 +7,7 @@ var workDir = '/webgme',
     resultId = null,
     gulp = require('gulp'),
     exec = require('child_process').exec,
+    execSync = require('child_process').execSync,
     git = require('gulp-git'),
     Q = require('q'),
     fs = require('fs-extra'),
@@ -177,67 +178,106 @@ gulp.task('npm', function () {
     return deferred.promise;
 });
 
+// gulp.task('mocha', function () {
+//     var deferred = Q.defer();
+//
+//     LOG('mocha task start');
+//     buildTime.mocha = new Date().getTime();
+//     mocha.clearFiles();
+//     mocha.addDir(baseDir + workDir + '/test');
+//     mocha.run(baseDir + workDir)
+//         .then(function (stats) {
+//             LOG('mocha task end');
+//             fs.writeFileSync(baseDir + resultDir + '/mochaResults.json', JSON.stringify(stats, null, 2));
+//             buildTime.mocha = new Date().getTime() - buildTime.mocha;
+//             globals.histograms.mocha.unshift(parseInt(100 * (stats.pass / (stats.all - stats.pending))));
+//             deferred.resolve();
+//         });
+//     return deferred.promise;
+// });
+
 gulp.task('mocha', function () {
-    var deferred = Q.defer();
+    var task;
 
     LOG('mocha task start');
     buildTime.mocha = new Date().getTime();
-    mocha.clearFiles();
-    mocha.addDir(baseDir + workDir + '/test');
-    mocha.run(baseDir + workDir)
-        .then(function (stats) {
-            LOG('mocha task end');
-            fs.writeFileSync(baseDir + resultDir + '/mochaResults.json', JSON.stringify(stats, null, 2));
-            buildTime.mocha = new Date().getTime() - buildTime.mocha;
-            globals.histograms.mocha.unshift(parseInt(100 * (stats.pass / (stats.all - stats.pending))));
-            deferred.resolve();
-        });
-    return deferred.promise;
+    task = execSync('node ' + baseDir + '/src/tasks/mochacli.js ' + baseDir + resultDir + ' ' +
+        baseDir + workDir + '/test', {
+        cwd: baseDir + workDir,
+        maxBuffer: 1024 * 1024 * 1024,
+        encoding: 'utf8'
+    });
+    LOG('mocha task end');
 });
 
+// gulp.task('coverage', function () {
+//     var deferred = Q.defer(),
+//         task,
+//         waitForFilesInterval,
+//         maxWaitCycle = 30;
+//
+//     LOG('coverage task start');
+//     buildTime.coverage = new Date().getTime();
+//     fs.emptyDirSync(baseDir + workDir + '/coverage');
+//     task = exec('npm run test_cover', {cwd: baseDir + workDir, encoding: 'buffer'},
+//         function (/*err, stdout, stderr*/) {
+//         });
+//
+//     // TODO - Right now we just ignoring any kind of output from the coverage process
+//     task.stdout.on('data', function (data) {
+//     });
+//     task.stderr.on('data', function (data) {
+//         LOG('coverage task had internal error print');
+//     });
+//     task.on('close', function (code) {
+//         LOG('coverage task end [' + code + ']');
+//         if (code === 0 || code === null) {
+//             buildTime.coverage = new Date().getTime() - buildTime.coverage;
+//             waitForFilesInterval = setInterval(function () {
+//                 if (fs.readdirSync(baseDir + workDir + '/coverage').length > 1) {
+//                     clearInterval(waitForFilesInterval);
+//                     fs.copySync(baseDir + workDir + '/coverage', baseDir + resultDir + '/coverage');
+//                     deferred.resolve();
+//                 } else {
+//                     if (--maxWaitCycle === 0) {
+//                         LOG('coverage task output was not created in time');
+//                         deferred.resolve();
+//                     }
+//                 }
+//             }, 1000);
+//
+//         } else {
+//             buildTime.coverage = null;
+//             deferred.reject(new Error('getting coverage failed:' + code));
+//         }
+//     });
+//
+//     return deferred.promise;
+// });
+
 gulp.task('coverage', function () {
-    var deferred = Q.defer(),
-        task,
-        waitForFilesInterval,
-        maxWaitCycle = 30;
+    var task;
 
     LOG('coverage task start');
     buildTime.coverage = new Date().getTime();
     fs.emptyDirSync(baseDir + workDir + '/coverage');
-    task = exec('npm run test_cover', {cwd: baseDir + workDir, encoding: 'buffer'},
-        function (/*err, stdout, stderr*/) {
-        });
-
-    // TODO - Right now we just ignoring any kind of output from the coverage process
-    task.stdout.on('data', function (data) {
-    });
-    task.stderr.on('data', function (data) {
-        LOG('coverage task had internal error print');
-    });
-    task.on('close', function (code) {
-        LOG('coverage task end [' + code + ']');
-        if (code === 0 || code === null) {
-            buildTime.coverage = new Date().getTime() - buildTime.coverage;
-            waitForFilesInterval = setInterval(function () {
-                if (fs.readdirSync(baseDir + workDir + '/coverage').length > 1) {
-                    clearInterval(waitForFilesInterval);
-                    fs.copySync(baseDir + workDir + '/coverage', baseDir + resultDir + '/coverage');
-                    deferred.resolve();
-                } else {
-                    if (--maxWaitCycle === 0) {
-                        LOG('coverage task output was not created in time');
-                        deferred.resolve();
-                    }
-                }
-            }, 1000);
-
-        } else {
-            buildTime.coverage = null;
-            deferred.reject(new Error('getting coverage failed:' + code));
-        }
-    });
-
-    return deferred.promise;
+    try {
+        task = execSync('node ./node_modules/istanbul/lib/cli.js ' +
+            '--hook-run-in-context cover node_modules/mocha/bin/_mocha ' +
+            '-- -R min --timeout 10000 --recursive test',
+            {
+                cwd: baseDir + workDir,
+                maxBuffer: 1024 * 1024 * 1024,
+                encoding: 'utf8'
+            });
+    } catch (e){
+        //ignore the error
+        fs.appendFileSync('coverage.log', task);
+    }
+    fs.appendFileSync('coverage.log', task);
+    LOG('coverage task end');
+    buildTime.coverage = new Date().getTime() - buildTime.coverage;
+    fs.copySync(baseDir + workDir + '/coverage', baseDir + resultDir + '/coverage');
 });
 
 gulp.task('process-coverage', function () {

@@ -19,7 +19,7 @@ setInterval(function () {
     if (currentTask === null && tasks.length > 0) {
         currentTask = tasks.shift();
         console.time(currentTask);
-        commitHandler = exec('node ./src/gulp/standard.js ' + currentTask, {encoding: 'buffer'}, function (err) {
+        commitHandler = exec('node ./src/tasks/processCommit.js ' + currentTask, {encoding: 'buffer'}, function (err) {
             console.timeEnd(currentTask);
             currentTask = null;
         });
