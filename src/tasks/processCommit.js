@@ -8,6 +8,7 @@ var workDir = '/webgme',
     exec = require('child_process').exec,
     Q = require('q'),
     fs = require('fs-extra'),
+    path = require('path'),
     mocha = require(baseDir + '/src/tasks/mocha'),
     istanbul = require(baseDir + '/src/tasks/istanbul'),
     buildTime = {},
@@ -47,6 +48,10 @@ function initGlobals() {
                     mochaTime: [],
                     npmTime: [],
                     gitTime: [],
+                    performance:{
+
+                    },
+                    memory:{},
                     performanceTime: []
                 },
                 detailed: {}
@@ -86,16 +91,21 @@ function saveGlobals() {
     return deferred.promise;
 }
 
-function executeCommand(cmd, cwd, ignoring) {
+function executeCommand(cmd, cwd, ignoring, print) {
     var deferred = Q.defer(),
         task;
 
     task = exec(cmd, {cwd: cwd, encoding: 'buffer'});
-    task.stdout.on('data', function (data) {
 
+    task.stdout.on('data', function (data) {
+        if(print){
+            console.log(data.toString('utf8'));
+        }
     });
     task.stderr.on('data', function (data) {
-
+        if(print){
+            console.error(data.toString('utf8'));
+        }
     });
     task.on('close', function (code) {
         if (ignoring) {
@@ -225,33 +235,86 @@ function processCoverage() {
     return deferred.promise;
 }
 
+function performance() {
+    var deferred = Q.defer(),
+        fileNames = fs.readdirSync(baseDir+'/projects'),
+        i,
+        promise = Q({});
+
+    LOG('performance task start');
+    buildTime.performance = new Date().getTime();
+    fileNames.forEach(function(fName){
+        if(path.extname(fName) === '.webgmex'){
+            promise = promise.then(function(){
+                return projectPerformance(baseDir+'/projects/'+fName);
+            });
+        }
+    });
+    
+    
+    promise.then(function(){
+        buildTime.performance = new Date().getTime() - buildTime.performance;
+        LOG('performance task end');
+        deferred.resolve();
+    })
+    .catch(function(e){
+        LOG('performance task failed');
+        buildTime.performance = null;
+        deferred.reject(e);
+    });
+
+    return deferred.promise;
+}
+
+function projectPerformance(projectPath){
+    var deferred = Q.defer(),
+        projectName = path.basename(projectPath,'.webgmex'),
+        task;
+
+    LOG('perf '+projectName+' import start');
+    executeCommand('node '+baseDir+workDir+'/src/bin/import.js '+projectPath+' -p '+projectName+' -w',baseDir+workDir)
+    .then(function(){
+        LOG('perf '+projectName+' import end');
+        LOG('perf '+projectName+' traverse start');
+        return executeCommand('node '+baseDir+'/src/tasks/traverse.js -p '+projectName+' -f '+baseDir+resultDir+'/perf_'+projectName+'.out',baseDir+workDir);
+    })
+    .then(function(){
+        var globalMeasurements;
+        LOG('perf '+projectName+' traverse end');
+        fs.copySync(baseDir+workDir+'/globals_'+projectName+'.json',baseDir+resultDir+'/globals_'+projectName+'.json');
+        fs.removeSync(baseDir+workDir+'/globals_'+projectName+'.json');
+        globalMeasurements = JSON.parse(fs.readFileSync(baseDir+resultDir+'/globals_'+projectName+'.json','utf8'));
+        globals.histograms.performance[projectName] = globals.histograms.performance[projectName] || [];
+        globals.histograms.performance[projectName].unshift (globalMeasurements.executionTime);
+        globals.histograms.memory[projectName] = globals.histograms.memory[projectName] || [];
+        globals.histograms.memory[projectName].unshift(globalMeasurements.memoryUsage);
+        deferred.resolve();
+    })
+    .catch(function(e){
+        console.log(e);
+        LOG('perf '+projectName+' import or traverse failed');
+        deferred.reject(e);
+    });
+
+    return deferred.promise;
+}
+
 //here starts the actual call of functions
 LOG('task sequence running start');
-
 initGlobals()
-    .then(function () {
-        return git();
-    })
-    .then(function () {
-        return npm();
-    })
-    .then(function () {
-        return mochaTests();
-    })
-    .then(function () {
-        return coverage();
-    })
-    .then(function () {
-        return processCoverage();
-    })
-    .then(function () {
-        return saveGlobals();
-    })
-    .then(function () {
+    .then(git)
+    .then(npm)
+    .then(mochaTests)
+    .then(coverage)
+    .then(processCoverage)
+    .then(performance)
+    .then(saveGlobals)
+    .then(function(){
         LOG('task sequence running end');
         process.exit(0);
     })
     .catch(function (e) {
+        LOG('task sequence running failed');
         console.error(e);
         process.exit(1);
     });

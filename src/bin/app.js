@@ -26,11 +26,11 @@ setInterval(function () {
 
         commitHandler.stdout.on('data', function (data) {
             //currently just ignoring output
-            //console.log(data);
+            // console.log(data);
         });
         commitHandler.stderr.on('data', function (data) {
             //currently just ignoring output
-            //console.log(data);
+            // console.log(data);
         });
     }
 }, 1000);
@@ -40,6 +40,7 @@ app.use(bodyParser.urlencoded({extended: false}));
 // parse application/json
 app.use(bodyParser.json());
 
+app.use(express.static('results'));
 app.post('/github', function (req, res) {
     //TODO - currently we only process commits for the master branch
     res.sendStatus(200);
