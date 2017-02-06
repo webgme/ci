@@ -48,10 +48,8 @@ function initGlobals() {
                     mochaTime: [],
                     npmTime: [],
                     gitTime: [],
-                    performance:{
-
-                    },
-                    memory:{},
+                    performance: {},
+                    memory: {},
                     performanceTime: []
                 },
                 detailed: {}
@@ -98,12 +96,12 @@ function executeCommand(cmd, cwd, ignoring, print) {
     task = exec(cmd, {cwd: cwd, encoding: 'buffer'});
 
     task.stdout.on('data', function (data) {
-        if(print){
+        if (print) {
             console.log(data.toString('utf8'));
         }
     });
     task.stderr.on('data', function (data) {
-        if(print){
+        if (print) {
             console.error(data.toString('utf8'));
         }
     });
@@ -237,64 +235,67 @@ function processCoverage() {
 
 function performance() {
     var deferred = Q.defer(),
-        fileNames = fs.readdirSync(baseDir+'/projects'),
+        fileNames = fs.readdirSync(baseDir + '/projects'),
         i,
         promise = Q({});
 
     LOG('performance task start');
     buildTime.performance = new Date().getTime();
-    fileNames.forEach(function(fName){
-        if(path.extname(fName) === '.webgmex'){
-            promise = promise.then(function(){
-                return projectPerformance(baseDir+'/projects/'+fName);
+    fileNames.forEach(function (fName) {
+        if (path.extname(fName) === '.webgmex') {
+            promise = promise.then(function () {
+                return projectPerformance(baseDir + '/projects/' + fName);
             });
         }
     });
-    
-    
-    promise.then(function(){
+
+    promise.then(function () {
         buildTime.performance = new Date().getTime() - buildTime.performance;
         LOG('performance task end');
         deferred.resolve();
     })
-    .catch(function(e){
-        LOG('performance task failed');
-        buildTime.performance = null;
-        deferred.reject(e);
-    });
+        .catch(function (e) {
+            LOG('performance task failed');
+            buildTime.performance = null;
+            deferred.reject(e);
+        });
 
     return deferred.promise;
 }
 
-function projectPerformance(projectPath){
+function projectPerformance(projectPath) {
     var deferred = Q.defer(),
-        projectName = path.basename(projectPath,'.webgmex'),
+        projectName = path.basename(projectPath, '.webgmex'),
         task;
 
-    LOG('perf '+projectName+' import start');
-    executeCommand('node '+baseDir+workDir+'/src/bin/import.js '+projectPath+' -p '+projectName+' -w',baseDir+workDir)
-    .then(function(){
-        LOG('perf '+projectName+' import end');
-        LOG('perf '+projectName+' traverse start');
-        return executeCommand('node '+baseDir+'/src/tasks/traverse.js -p '+projectName+' -f '+baseDir+resultDir+'/perf_'+projectName+'.out',baseDir+workDir);
-    })
-    .then(function(){
-        var globalMeasurements;
-        LOG('perf '+projectName+' traverse end');
-        fs.copySync(baseDir+workDir+'/globals_'+projectName+'.json',baseDir+resultDir+'/globals_'+projectName+'.json');
-        fs.removeSync(baseDir+workDir+'/globals_'+projectName+'.json');
-        globalMeasurements = JSON.parse(fs.readFileSync(baseDir+resultDir+'/globals_'+projectName+'.json','utf8'));
-        globals.histograms.performance[projectName] = globals.histograms.performance[projectName] || [];
-        globals.histograms.performance[projectName].unshift (globalMeasurements.executionTime);
-        globals.histograms.memory[projectName] = globals.histograms.memory[projectName] || [];
-        globals.histograms.memory[projectName].unshift(globalMeasurements.memoryUsage);
-        deferred.resolve();
-    })
-    .catch(function(e){
-        console.log(e);
-        LOG('perf '+projectName+' import or traverse failed');
-        deferred.reject(e);
-    });
+    LOG('perf ' + projectName + ' import start');
+    executeCommand('node ' + baseDir + workDir + '/src/bin/import.js ' + projectPath +
+        ' -p ' + projectName + ' -w', baseDir + workDir)
+        .then(function () {
+            LOG('perf ' + projectName + ' import end');
+            LOG('perf ' + projectName + ' traverse start');
+            return executeCommand('node ' + baseDir + '/src/tasks/traverse.js -p ' + projectName +
+                ' -f ' + baseDir + resultDir + '/perf_' + projectName + '.out', baseDir + workDir);
+        })
+        .then(function () {
+            var globalMeasurements;
+            LOG('perf ' + projectName + ' traverse end');
+            fs.copySync(baseDir + workDir + '/globals_' + projectName + '.json', baseDir +
+                resultDir + '/globals_' + projectName + '.json');
+            fs.removeSync(baseDir + workDir + '/globals_' + projectName + '.json');
+            globalMeasurements = JSON.parse(fs.readFileSync(baseDir + resultDir + '/globals_' +
+                projectName + '.json', 'utf8'));
+            globals.histograms.performance[projectName] = globals.histograms.performance[projectName] || [];
+            globals.histograms.performance[projectName].unshift(globalMeasurements.executionTime);
+            globals.histograms.memory[projectName] = globals.histograms.memory[projectName] || [];
+            globals.histograms.memory[projectName].unshift(globalMeasurements.memoryUsage);
+            deferred.resolve();
+        })
+        .catch(function (e) {
+            console.log(e);
+            LOG('perf ' + projectName + ' import or traverse failed');
+            deferred.reject(e);
+        });
 
     return deferred.promise;
 }
@@ -309,7 +310,7 @@ initGlobals()
     .then(processCoverage)
     .then(performance)
     .then(saveGlobals)
-    .then(function(){
+    .then(function () {
         LOG('task sequence running end');
         process.exit(0);
     })
