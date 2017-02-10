@@ -1,9 +1,47 @@
 <html>
 <head>
+    <meta http-equiv="refresh" content="120">
     <script data-main="main" src="require.js"></script>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </head>
 <body>
-<canvas id="coverageChart" width="100" height="100"></canvas>
-<ul id=detailedCoverages>Detailed Covergae Info</ul>
+<div class="container">
+    <div class="row" style="height: 350px">
+        <div class="col-md-6" style="height: 300px">
+            Build Times
+            <canvas id="buildTimeChart"></canvas>
+        </div>
+        <div class="col-md-6" style="height: 300px">
+            Mocha execution results
+            <canvas id="mochaChart"></canvas>
+        </div>
+    </div>
+    <div class="row" style="height: 350px">
+        <div class="col-md-6" style="height: 300px">
+            Code Coverage Info
+            <canvas id="coverageChart"></canvas>
+        </div>
+        <div class="col-md-6" style="height: 300px">
+            Traversal Performance
+            <canvas id="traverseChart"></canvas>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <ul id="detailedCoverages">Detailed Covergae Info</ul>
+    </div>
+    <div class="col-md-6">
+        <ul id="commitLinks">Github Commit Links</ul>
+    </div>
+</div>
 </body>
 </html>

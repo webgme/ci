@@ -29,7 +29,7 @@ function addFile(path) {
     files.push(path);
 }
 
-function addDir(path, excludeUpmostLevel) {
+function _addDir(path, excludeUpmostLevel) {
     // Recursively adds all js files to the suite. If excludeUpmostLevel === true, then
     // it leaves out js files on the initial directory
     var list = FS.readdirSync(path),
@@ -43,6 +43,26 @@ function addDir(path, excludeUpmostLevel) {
         if (stat.isDirectory()) {
             addDir(subPath, false);
         } else if (stat.isFile() && excludeUpmostLevel === false && PATH.parse(subPath).ext === '.js') {
+            addFile(subPath);
+        }
+    }
+}
+
+function addDir(path, excludeUpmostLevel) {
+    // Recursively adds all js files to the suite. If excludeUpmostLevel === true, then
+    // it leaves out js files on the initial directory
+    var list = FS.readdirSync(path),
+        i, stat, subPath,
+        extension = new RegExp('\\.spec\.js$');
+    if (excludeUpmostLevel !== false) {
+        excludeUpmostLevel = true;
+    }
+    for (i = 0; i < list.length; i += 1) {
+        subPath = PATH.join(path, list[i]);
+        stat = FS.statSync(subPath);
+        if (stat.isDirectory()) {
+            addDir(subPath, false);
+        } else if (stat.isFile() && excludeUpmostLevel === false && extension.test(PATH.parse(subPath).base)) {
             addFile(subPath);
         }
     }

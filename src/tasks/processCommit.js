@@ -44,7 +44,7 @@ function initGlobals() {
                 histograms: {
                     coverage: [],
                     coverageTime: [],
-                    mocha: [],
+                    mocha: {pass:[],fail:[],pending:[]},
                     mochaTime: [],
                     npmTime: [],
                     gitTime: [],
@@ -177,9 +177,9 @@ function mochaTests() {
             buildTime.mocha = new Date().getTime() - buildTime.mocha;
 
             mochaResults = JSON.parse(fs.readFileSync(baseDir + resultDir + '/mochaResults.json', 'utf8'));
-            globals.histograms.mocha.unshift(
-                parseInt(100 * (mochaResults.pass / (mochaResults.all - mochaResults.pending)))
-            );
+            globals.histograms.mocha.pass.unshift(mochaResults.pass);
+            globals.histograms.mocha.fail.unshift(mochaResults.fail);
+            globals.histograms.mocha.pending.unshift(mochaResults.pending);
 
             deferred.resolve();
         })
@@ -236,7 +236,6 @@ function processCoverage() {
 function performance() {
     var deferred = Q.defer(),
         fileNames = fs.readdirSync(baseDir + '/projects'),
-        i,
         promise = Q({});
 
     LOG('performance task start');
