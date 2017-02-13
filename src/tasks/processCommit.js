@@ -42,9 +42,9 @@ function initGlobals() {
         globals = globals || {
                 commits: [],
                 histograms: {
-                    coverage: [],
+                    coverage: {covered: [], uncovered: [], skipped: [], percentage: []},
                     coverageTime: [],
-                    mocha: {pass:[],fail:[],pending:[]},
+                    mocha: {pass: [], fail: [], pending: []},
                     mochaTime: [],
                     npmTime: [],
                     gitTime: [],
@@ -221,7 +221,10 @@ function processCoverage() {
     LOG('process-coverage task start');
     try {
         var coverageInfo = istanbul(baseDir + workDir, baseDir + resultDir + '/coverage/coverage.json');
-        globals.histograms.coverage.unshift(coverageInfo.__total__.lines.pct);
+        globals.histograms.coverage.percentage.unshift(coverageInfo.__total__.lines.pct);
+        globals.histograms.coverage.covered.unshift(coverageInfo.__total__.lines.covered);
+        globals.histograms.coverage.skipped.unshift(coverageInfo.__total__.lines.skipped);
+        globals.histograms.coverage.uncovered.unshift(coverageInfo.__total__.lines.total - coverageInfo.__total__.lines.covered - coverageInfo.__total__.lines.skipped);
     } catch (e) {
         //TODO right now we ignore error
         LOG('process-coverage task internal error -> ' + e);

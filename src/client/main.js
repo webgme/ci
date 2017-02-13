@@ -105,9 +105,30 @@ require(['text!globals.json', 'Chart.js'], function (dataGlobals, Chart) {
                 labels:dataGlobals.commits,
                 datasets:[
                     {
+                        type:'line',
+                        fill:false,
+                        tension:1,
                         label: 'code coverage %',
-                        backgroundColor:'cyan',
-                        data: dataGlobals.histograms.coverage
+                        borderColor:'cyan',
+                        data: dataGlobals.histograms.coverage.percentage
+                    },
+                    {
+                        type:'bar',
+                        label:'covered',
+                        backgroundColor:'green',
+                        data:dataGlobals.histograms.coverage.covered
+                    },
+                    {
+                        type:'bar',
+                        label:'skipped',
+                        backgroundColor:'yellow',
+                        data:dataGlobals.histograms.coverage.skipped
+                    },
+                    {
+                        type:'bar',
+                        label:'not-covered',
+                        backgroundColor:'red',
+                        data:dataGlobals.histograms.coverage.uncovered
                     }
                 ]
             },
@@ -160,7 +181,7 @@ require(['text!globals.json', 'Chart.js'], function (dataGlobals, Chart) {
             }
         }
     });
-    // Links to the covergae Artifacts
+    // Links to the coverage Artifacts
     var detailedCoveragesList = document.getElementById('detailedCoverages'),
         commitLinksList = document.getElementById('commitLinks'),
         i,
